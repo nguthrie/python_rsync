@@ -12,7 +12,6 @@ Example:
 - python rsync dir1/ dir2/ will copy entire directory dir1/ into dir2/
 - python rsync -r dir1/* dir2/ will copy all files in dir1/ into dir2/  
 
-
 Options
 
  -r, --recursive             recurse into directories
