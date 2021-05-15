@@ -4,78 +4,125 @@ import sys
 import os
 import sys
 import getopt
+import glob
+
 
 with open("help.txt") as f:
    HELP = f.read()
 
+
 def main():
-   
+
     argv = sys.argv[1:]
 
-    # call to handle abs vs relative path...
-    # need to handle wether it's
-    # a) a directory : os to check if directory
-    # b) a file : os to check if is file
+    def parse_input(argv):
 
-    try:
-        source = argv[-2]
-        destination = argv[-1]
-    except IndexError as IE:
-        print("Pass at least two arguments")
-        exit(1)
-    except Exception as e:
-        print(e)
-        exit(1)
+        unixOptions = "nhd"
+        gnuOptions = ["dry-run", "help", "dirs"]
 
+        try:
+            opts, args = getopt.getopt(argv, unixOptions, gnuOptions)
+            print("(test output) opts:", opts)
+            print("(test output) args:", args)
+            if len(args) != 2:
+                print("Please provide a valid source and destination.")
+                sys.exit(1)
+        except getopt.GetoptError as error:
+            print(error)
+            sys.exit(1)
+    return opts, args
 
-    # VALIDATE INPUT FUNCTION
+    opts, args = parse_input(argv)
 
-    if os.path.isdir(source):  
-        print("\nIt is a directory")  
-    elif os.path.isfile(source):  
-        print("\nIt is a normal file")  
-    else:  
-        print("It is a special file (socket, FIFO, device file)" )
-
-    # CHECKS ON prefix with / for absolute path
-    IS_ABS = os.path.isabs(source)
-    if IS_ABS:
-        print("absolute path")
-    else:
-        print("relavtive path")
-
-    # add call to parse_input() here
-
-    unixOptions = "nhd"
-    gnuOptions = ["dry-run", "help", "dirs"]
-
-    try:
-        opts, args = getopt.getopt(argv, unixOptions, gnuOptions)
-        print("opts:", opts)
-        print("args:", args)
-    except getopt.GetoptError as error:
-        print(error)
-        print('test.py -i {} -o {}'.format(source, destination))
-        sys.exit(1)
-
+    # TO DO: do a faster, better looking checking
+    # functionality: just check for -h/--help
     for opt, arg in opts:
         if opt == '-h' or opt == '--help':
             print(HELP)
             sys.exit()
-        elif opt in ("-n", "--dry-run"):
-            pass
-        elif opt in ("-d", "--dirs"):
-            pass
-    
-    
-    print("Source is {}".format(source))
-    print("Destination is {}".format(destination))
+        
+        if opt == '-d' or opt == '--dirs':
+            path_handler(True, args)
+        
+        path_handler(False, args)
 
-def sync():
-    pass
+    # elif opt in ("-n", "--dry-run"):
+    #     # determine which files need to be transferred
+    #     # print report
+    #     # exit
+    #     pass
+    # elif opt in ("-d", "--dirs"):
+    #     pass
+
+def path_handler(dirs, args):
+    print("path_handler input:", dirs, args)
+
+    print("dirs", dirs)
+
+    transfer_list = []
+
+    # need to get the directory
+    # 
+
+    source, dest = args
+    cwd = os.getcwd()
+
+    # turn rel path to abs path 
+    if not os.path.isabs(source):
+        source = os.path.join(cwd, source)
+    if not os.path.isabs(dest):
+        dest = os.path.join(cwd, dest)
+
+    try:
+        print("files in source:", os.listdir(source))
+        print("files in dest:", os.listdir(dest))
+        source_file = os.listdir(source)
+        dest_file = os.listdir(dest)
+    except Exception as e:
+        print("No such file or directory.")
+        exit(1)
+
+    source_is_file = os.path.isfile(source)
+    source_is_dir = os.path.isdir(source)
+    dest_is_file = os.path.isfile(dest)
+    dest_is_dir = os.path.isdir(dest)
+
+    if source_is_file:
+        if dest_is_file:
+            transfer_list.append((source, dest, 1))
+        elif dest_is_dir:
+            try:
+                shutil.copy(source, dest, 2)
+            except Exception as e:
+                print(e)
+    elif source_is_dir:
+        if dest_is_file:
+            print('Cannot copy directory to file.')
+            exit(1)
+        elif dest_is_dir:
+            if dirs:
+                for objects in os.listdir(source):
+                    path_to_object = os.path.join(source, object)
+                    transfer_list.append((path_to_object, dest, 3))
+            else:
+                print("Skipping directory .")
+                print("(Add -d/--dir to copy contents.)")
+                exit()
+    elif source.endswith("*"):
+        # use glob to copy over
+        for file in glob.glob(source):
+            print("debug:", file)
+            shutil.copy(file, dest)
+    elif "*" in os.path.splittext(source)[1] and not os.path.splittext(source)[1].endswith("*"):
+        # wildcard for extensions
+        pass  
+
+
+    if not (source_is_file or source_is_dir):
+        print("Cannot handle input.")
+        exit(1)
 
 
 if __name__ == "__main__":
     
     main()
-    sync()
