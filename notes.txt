@@ -1,3 +1,25 @@
+Can match a unix style glob if it exists
+Will just give a single input arg if not
+that input arg can be 
+a) a file that exists
+b) a file or dir that doesn't exist
+c) a directory
+otherwise
+d) can have multiple files that match the glob
+
+for the item in args[:-1]
+check if it exists
+check if file
+- if yes, add to list
+check if dir and dirs == True
+- if yes, add to list
+
+its sort of working
+need to handle 
+a) file comparison
+b) copying
+c) report gen
+
 
 Python rsync  version 0.1  protocol version 1
 Copyright (C) 2021 by Nicholas Guthrie.

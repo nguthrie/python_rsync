@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-import sys
 import os
 import sys
 import getopt
-import glob
+import shutil
+import filecmp
 
 
 with open("help.txt") as f:
@@ -17,22 +17,35 @@ def main():
 
     def parse_input(argv):
 
-        unixOptions = "nhd"
-        gnuOptions = ["dry-run", "help", "dirs"]
+        unixOptions = "nhdv"
+        gnuOptions = ["dry-run", "help", "dirs", "verbose"]
 
         try:
             opts, args = getopt.getopt(argv, unixOptions, gnuOptions)
             print("(test output) opts:", opts)
             print("(test output) args:", args)
-            if len(args) != 2:
-                print("Please provide a valid source and destination.")
-                sys.exit(1)
+
+        # can enter any number of args
+        # also can handle unix globs!!!
+        
+        # will get all files that match from the directory if they exists
+
         except getopt.GetoptError as error:
             print(error)
             sys.exit(1)
-    return opts, args
+    
+        return opts, args
+
+
 
     opts, args = parse_input(argv)
+
+    # get source directory
+    # select files to transfer or print
+    print()
+    print("number of matching source args", len(args[:-1]))
+
+    dirs = False
 
     # TO DO: do a faster, better looking checking
     # functionality: just check for -h/--help
@@ -42,85 +55,107 @@ def main():
             sys.exit()
         
         if opt == '-d' or opt == '--dirs':
-            path_handler(True, args)
+            dirs = True
+
+        if opt == '-n' or opt == '--dry-run':
+            dry_run = True
         
-        path_handler(False, args)
+        if opt == '-v' or opt == '--verbose':
+            verbose = True
 
-    # elif opt in ("-n", "--dry-run"):
-    #     # determine which files need to be transferred
-    #     # print report
-    #     # exit
-    #     pass
-    # elif opt in ("-d", "--dirs"):
-    #     pass
+    transfer_candidates = []
+    report = []
 
-def path_handler(dirs, args):
-    print("path_handler input:", dirs, args)
+    for item in args[:-1]:
+        # input files may or may not match input files
+        abs_path_to_source = os.path.join(os.getcwd(), item)
+        basename =  os.path.basename(abs_path_to_source)
+        print("source basename:", basename)
+        dirname = os.path.dirname(abs_path_to_source)
+        print("source dirname:", dirname)
+        path_split = os.path.split(abs_path_to_source)
+        print("source split:", path_split)
+        extension = os.path.splitext(abs_path_to_source)[1]
+        print("source extension:", extension)
+        source_exists = os.path.exists(abs_path_to_source)
+        print("does source exists? ", source_exists)
+        source_is_dir = os.path.isdir(abs_path_to_source)
+        print("is source a dir? ", source_is_dir)
+        source_is_file = os.path.isfile(abs_path_to_source)
+        print("is source a file? ", source_is_file)
+        # * will never be in the extension
+        # print("* in extension?", "*" in extension)
+        print("* in basename?", "*" in basename)
+        print()
+        # all I'm doing is checking if the path is a file or a dir
+        # if it is (and dirs), and it to the transfer candidates list
+        if source_is_file:
+            transfer_candidates.append(abs_path_to_source)
+        elif source_is_dir and dirs:
+            transfer_candidates.append(abs_path_to_source)
+        elif source_is_dir and not dirs:
+            report.append('skipping directory {}'.format(os.path.basename(os.path.normpath(abs_path_to_source))))
+            print("report:", report)
 
-    print("dirs", dirs)
+    print("transfer candidates:", transfer_candidates)
+    print()
 
-    transfer_list = []
 
-    # need to get the directory
-    # 
 
-    source, dest = args
-    cwd = os.getcwd()
+    abs_path_to_dest = os.path.join(os.getcwd(), args[-1])
+    print("abs path to dest:", abs_path_to_dest)
+    dest_is_dir = os.path.isdir(abs_path_to_dest)
+    print('dest is dir:', dest_is_dir)
+    dest_is_file = os.path.isfile(abs_path_to_source)
+    print('dest is file:', dest_is_file)
 
-    # turn rel path to abs path 
-    if not os.path.isabs(source):
-        source = os.path.join(cwd, source)
-    if not os.path.isabs(dest):
-        dest = os.path.join(cwd, dest)
 
-    try:
-        print("files in source:", os.listdir(source))
-        print("files in dest:", os.listdir(dest))
-        source_file = os.listdir(source)
-        dest_file = os.listdir(dest)
-    except Exception as e:
-        print("No such file or directory.")
-        exit(1)
-
-    source_is_file = os.path.isfile(source)
-    source_is_dir = os.path.isdir(source)
-    dest_is_file = os.path.isfile(dest)
-    dest_is_dir = os.path.isdir(dest)
-
-    if source_is_file:
-        if dest_is_file:
-            transfer_list.append((source, dest, 1))
-        elif dest_is_dir:
-            try:
-                shutil.copy(source, dest, 2)
-            except Exception as e:
-                print(e)
-    elif source_is_dir:
-        if dest_is_file:
-            print('Cannot copy directory to file.')
-            exit(1)
-        elif dest_is_dir:
-            if dirs:
-                for objects in os.listdir(source):
-                    path_to_object = os.path.join(source, object)
-                    transfer_list.append((path_to_object, dest, 3))
+    for candidate in transfer_candidates:
+        print('candidate:', candidate)
+        candidate_basename = os.path.basename(candidate)
+        print('candidate basename:', candidate_basename)
+        candidate_dirname = os.path.dirname(abs_path_to_dest)
+        print("candidate dirname:", candidate_dirname)
+        path_to_candidate_in_dest = os.path.join(candidate_dirname, candidate_basename) 
+        print('candidate in dest:', path_to_candidate_in_dest)
+        # we know the candidate exists
+        # check if the candidate exists in the destination folder
+        # and the destination is a folder
+        if os.path.exists(path_to_candidate_in_dest) and dest_is_dir:
+            print("file/dir exists and dest is dir")
+            # hash compare files to see if transfer is needed
+            # if files are not the same
+            # if directory exists, that's sufficient, don't need to check 
+            hashes_match = filecmp.cmp(candidate, path_to_candidate_in_dest) 
+            print("dest is folder and hashes match:", hashes_match)
+            if hashes_match != True:
+                if os.path.isfile(candidate):
+                    shutil.copy(candidate, path_to_candidate_in_dest)
+        # we know the candidate exists
+        # if the given dest file exists in the dest folder,
+        # need to check if file to file hashes match
+        # else copy
+        elif dest_is_file:
+            if os.path.exists(abs_path_to_dest):
+                hashes_match = filecmp.cmp(candidate, abs_path_to_dest) 
+                print("dest is file and hashes match:", hashes_match)
+                if hashes_match != True:
+                    shutil.copy(candidate, path_to_candidate_in_dest)
             else:
-                print("Skipping directory .")
-                print("(Add -d/--dir to copy contents.)")
-                exit()
-    elif source.endswith("*"):
-        # use glob to copy over
-        for file in glob.glob(source):
-            print("debug:", file)
-            shutil.copy(file, dest)
-    elif "*" in os.path.splittext(source)[1] and not os.path.splittext(source)[1].endswith("*"):
-        # wildcard for extensions
-        pass  
+                shutil.copy(candidate, abs_path_to_dest)
+        else:
+            print("file/dir does not exist")
+            if os.path.isfile(candidate):
+                    shutil.copy(candidate, path_to_candidate_in_dest)
+            else:
+                shutil.copytree(candidate, path_to_candidate_in_dest)
 
 
-    if not (source_is_file or source_is_dir):
-        print("Cannot handle input.")
-        exit(1)
+    def build_report():
+        # need to know files are going to be transferred
+        # print those to the screen
+
+        pass
 
 
 if __name__ == "__main__":

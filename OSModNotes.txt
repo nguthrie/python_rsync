@@ -1,0 +1,27 @@
+
+os.getcwd()
+
+os.chdir()
+
+os.listdir()
+
+os.mkidir()/os.mkdirs()
+os.rmdir()/os.removedirs()
+
+os.rename()
+
+os.stat().<attribute>
+
+for dirpath, dirnames, filenames in os.walk()
+
+os.path.join()
+
+os.path.basename() -> gives you the filename!
+os.path.dirname() -> gives you the dirname!
+os.path.split() -> gives you both as a tuple
+
+os.path.exists()
+os.path.isdir()
+os.path.isfile()
+
+os.path.splittext() -> will give the the extension! 
