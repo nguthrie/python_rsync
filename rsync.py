@@ -46,6 +46,8 @@ def main():
     print("number of matching source args", len(args[:-1]))
 
     dirs = False
+    dry_run = False
+    verbose = False
 
     # TO DO: do a faster, better looking checking
     # functionality: just check for -h/--help
@@ -95,7 +97,6 @@ def main():
             transfer_candidates.append(abs_path_to_source)
         elif source_is_dir and not dirs:
             report.append('skipping directory {}'.format(os.path.basename(os.path.normpath(abs_path_to_source))))
-            print("report:", report)
 
     print("transfer candidates:", transfer_candidates)
     print()
@@ -112,7 +113,10 @@ def main():
 
     for candidate in transfer_candidates:
         print('candidate:', candidate)
-        candidate_basename = os.path.basename(candidate)
+        if os.path.isfile(candidate):
+            candidate_basename = os.path.basename(candidate)
+        else:
+            candidate_basename = os.path.basename(os.path.normpath(candidate))
         print('candidate basename:', candidate_basename)
         candidate_dirname = os.path.dirname(abs_path_to_dest)
         print("candidate dirname:", candidate_dirname)
@@ -126,36 +130,58 @@ def main():
             # hash compare files to see if transfer is needed
             # if files are not the same
             # if directory exists, that's sufficient, don't need to check 
-            hashes_match = filecmp.cmp(candidate, path_to_candidate_in_dest) 
-            print("dest is folder and hashes match:", hashes_match)
-            if hashes_match != True:
-                if os.path.isfile(candidate):
-                    shutil.copy(candidate, path_to_candidate_in_dest)
-        # we know the candidate exists
-        # if the given dest file exists in the dest folder,
-        # need to check if file to file hashes match
-        # else copy
+            if os.path.isfile(candidate):
+                hashes_match = filecmp.cmp(candidate, path_to_candidate_in_dest)
+                print("dest is folder and hashes match:", hashes_match)            
+                if hashes_match != True:
+                    report.append(candidate_basename)
+                    if dry_run != True:
+                        shutil.copy(candidate, path_to_candidate_in_dest)
+            # elif os.path.isdir(candidate) and dirs:
+            #     # DO NEED THIS BECAUSE DIR EXISTS IN DEST
+            #     # HASH WILL SAY DIFF BUT CAN'T BE DIFF BC EMPTY (ONE LEVEL)
+            #     # NOTHING TO DO OR REPORT
+            #     # if the directory exists, we don't need to copy
+            #     # the directory can't have any contents
+            #     # just add to the report
+            #     report.append(os.path.basename(os.path.normpath(candidate)))
         elif dest_is_file:
             if os.path.exists(abs_path_to_dest):
                 hashes_match = filecmp.cmp(candidate, abs_path_to_dest) 
                 print("dest is file and hashes match:", hashes_match)
                 if hashes_match != True:
-                    shutil.copy(candidate, path_to_candidate_in_dest)
+                    report.append(candidate_basename)
+                    if not dry_run:
+                        shutil.copy(candidate, path_to_candidate_in_dest)
             else:
-                shutil.copy(candidate, abs_path_to_dest)
+                report.append(candidate_basename)
+                if not dry_run:
+                    shutil.copy(candidate, abs_path_to_dest)
         else:
-            print("file/dir does not exist")
+            print("file/dir does not exist in destination")
             if os.path.isfile(candidate):
+                report.append(candidate_basename)
+                if not dry_run:
                     shutil.copy(candidate, path_to_candidate_in_dest)
             else:
-                shutil.copytree(candidate, path_to_candidate_in_dest)
+                # is directory that doesn't exist in the dest folder
+                report.append(os.path.basename(os.path.normpath(candidate)))
+                if not dry_run:
+                    shutil.copytree(candidate, path_to_candidate_in_dest)
 
+    def print_report(report):
+        
+        [print(line) for line in report]
+        print()
+        print("sent ??? bytes  received ??? bytes  ??? bytes/sec")
+        if dry_run:
+            print("total size is ???  speedup is ???" + " (DRY RUN)")
+        else:
+            print("total size is ???  speedup is ???")
 
-    def build_report():
-        # need to know files are going to be transferred
-        # print those to the screen
+    if dry_run or verbose:
+        print_report(report)
 
-        pass
 
 
 if __name__ == "__main__":
