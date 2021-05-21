@@ -7,12 +7,31 @@ import shutil
 import filecmp
 
 
-def main():
+def main(argv=None):
 
-    with open("help.txt") as f:
-        HELP = f.read()
+    HELP = '''Python rsync  version 0.1  protocol version 1
+    Copyright (C) 2021 by Nicholas Guthrie.
+    GitHub: https://github.com/nguthrie/python_rsync.git
 
-    argv = sys.argv[1:]
+    psync is a mininmal analog of rsync written in Python. psync is a file transfer program.
+    It transfers files in a filetree that is one level deep. 
+
+    Usage: psync [OPTION]... SRC ... DEST
+
+    Example:  
+    - python rsync file dir/ will copy file into dir/
+    - python rsync -d(--dirs) dir1/ dir2/ will copy contents of dir1/ into dir2/
+
+    Options: 
+    -d, --dirs                  transfer directories without recursing
+    -n, --dry-run               perform a trial run with no changes made and prints transfer list (liked rsync -vn source/ dest/)
+    -h, --help                  show this help (-h is --help only if used alone)
+    v, --verbose                increase verbosity
+    '''
+
+    # allow passing arguments to test
+    if not argv:
+        argv = sys.argv[1:]
 
     def parse_input(argv):
 
@@ -106,6 +125,11 @@ def main():
     transfer_candidates = get_transfer_candidates(args)
 
     def sync(transfer_candidates):
+        '''
+        
+        Note: bash rsync allows mapping many files to one. It will create the file if it doesn't exist.
+        '''
+
 
         abs_path_to_dest = os.path.join(os.getcwd(), args[-1])
         print("abs path to dest:", abs_path_to_dest)
