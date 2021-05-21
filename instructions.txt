@@ -1,0 +1,22 @@
+Written in Python version 3.8.5
+Usage similiar to Linux rsync. 
+python(3) rsync.py [OPTION]... [SRC] ... [DEST]
+
+Options:
+-d, --dirs                  transfer directories without recursing
+-n, --dry-run               perform a trial run with no changes made and prints transfer list
+-h, --help                  show this help (-h is --help only if used alone)
+-v, --verbose               increase verbosity
+
+examples:
+Print help text: >>> python(3) rsync.py -h/--help 
+Transfer single file >>> python(3) rsync.py path_to_source path_to_dest
+Transfer with wildcard >>> python(3) rsync.py path_to_source/* path_to_dest
+Transfer with extension >>> python(3) rsync.py path_to_source/*.ext path_to_dest
+Transfer directory >>> python(3) rsync.py -d path_to_source/*.ext path_to_dest
+
+
+Issues and improvements:
+- I did integration tests instead of unit tests in the interest of time and because the functions are quite small
+- I used inittest for this, also in the interest of time
+- Happy to hear any other feedback!
