@@ -6,110 +6,75 @@ import getopt
 import shutil
 import filecmp
 
+HELP = '''Python rsync  version 0.1  protocol version 1
+Copyright (C) 2021 by Nicholas Guthrie.
+GitHub: https://github.com/nguthrie/python_rsync.git
+
+Python rsync is a mininmal analog of rsync written in Python. Python rsync is a file transfer program.
+It transfers files in a filetree that is one level deep. It will only transfer files if they have different 
+contents.
+
+Usage: rsync [OPTION]... SRC ... DEST
+
+Example:  
+- python rsync file dir/ will copy file into dir/
+- python rsync -d(--dirs) dir1/ dir2/ will copy contents of dir1/ into dir2/
+
+Options: 
+-d, --dirs                  transfer directories without recursing
+-n, --dry-run               perform a trial run with no changes made and prints transfer list
+-h, --help                  show this help (-h is --help only if used alone)
+v, --verbose                increase verbosity'''
+
 
 def main(argv=None):
+    """
+    Python rsync is a mininmal analog of rsync written in Python. Python rsync is a file transfer program.
+    It transfers files in a filetree that is one level deep. It will only transfer files if they have
+    different contents.
 
-    HELP = '''Python rsync  version 0.1  protocol version 1
-    Copyright (C) 2021 by Nicholas Guthrie.
-    GitHub: https://github.com/nguthrie/python_rsync.git
+    :param argv: list of strings (usually taken from CLI, but optionally passed directly for testing)
+    :return:
+    """
 
-    psync is a mininmal analog of rsync written in Python. psync is a file transfer program.
-    It transfers files in a filetree that is one level deep. 
-
-    Usage: psync [OPTION]... SRC ... DEST
-
-    Example:  
-    - python rsync file dir/ will copy file into dir/
-    - python rsync -d(--dirs) dir1/ dir2/ will copy contents of dir1/ into dir2/
-
-    Options: 
-    -d, --dirs                  transfer directories without recursing
-    -n, --dry-run               perform a trial run with no changes made and prints transfer list (liked rsync -vn source/ dest/)
-    -h, --help                  show this help (-h is --help only if used alone)
-    v, --verbose                increase verbosity
-    '''
-
-    # allow passing arguments to test
+    # allow passing of arguments to test
     if not argv:
         argv = sys.argv[1:]
 
     def parse_input(argv):
+        """
+        Parses CLI input into options and arguments
 
-        unixOptions = "nhdv"
-        gnuOptions = ["dry-run", "help", "dirs", "verbose"]
+        :param argv: list of strings
+        :return: list of strings, list of strings
+        """
+
+        unix_options = "nhdv"
+        gnu_options = ["dry-run", "help", "dirs", "verbose"]
 
         try:
-            opts, args = getopt.getopt(argv, unixOptions, gnuOptions)
-            print("(test output) opts:", opts)
-            print("(test output) args:", args)
-
-        # can enter any number of args
-        # also can handle unix globs!!!
-        
-        # will get all files that match from the directory if they exists
+            opts, args = getopt.getopt(argv, unix_options, gnu_options)
 
         except getopt.GetoptError as error:
             print(error)
             sys.exit(1)
-    
+
         return opts, args
 
-    opts, args = parse_input(argv)
-
-    # get source directory
-    # select files to transfer or print
-    print()
-    print("number of matching source args", len(args[:-1]))
-
-    dirs = False
-    dry_run = False
-    verbose = False
-
-    report = []
-
-    # TO DO: do a faster, better looking checking
-    # functionality: just check for -h/--help
-    for opt, arg in opts:
-        if opt == '-h' or opt == '--help':
-            print(HELP)
-            sys.exit()
-        
-        if opt == '-d' or opt == '--dirs':
-            dirs = True
-
-        if opt == '-n' or opt == '--dry-run':
-            dry_run = True
-        
-        if opt == '-v' or opt == '--verbose':
-            verbose = True
-
-
     def get_transfer_candidates(args):
+        """
+        Checks existence of inputs against files and directories in source folder.
+
+        :param args: list of strings
+        :return: list of strings
+        """
+
         transfer_candidates = []
 
         for item in args[:-1]:
-            # input files may or may not match input files
             abs_path_to_source = os.path.join(os.getcwd(), item)
-            basename =  os.path.basename(abs_path_to_source)
-            print("source basename:", basename)
-            dirname = os.path.dirname(abs_path_to_source)
-            print("source dirname:", dirname)
-            path_split = os.path.split(abs_path_to_source)
-            print("source split:", path_split)
-            extension = os.path.splitext(abs_path_to_source)[1]
-            print("source extension:", extension)
-            source_exists = os.path.exists(abs_path_to_source)
-            print("does source exists? ", source_exists)
             source_is_dir = os.path.isdir(abs_path_to_source)
-            print("is source a dir? ", source_is_dir)
             source_is_file = os.path.isfile(abs_path_to_source)
-            print("is source a file? ", source_is_file)
-            # * will never be in the extension
-            # print("* in extension?", "*" in extension)
-            print("* in basename?", "*" in basename)
-            print()
-            # all I'm doing is checking if the path is a file or a dir
-            # if it is (and dirs), and it to the transfer candidates list
             if source_is_file:
                 transfer_candidates.append(abs_path_to_source)
             elif source_is_dir and dirs:
@@ -117,68 +82,38 @@ def main(argv=None):
             elif source_is_dir and not dirs:
                 report.append('skipping directory {}'.format(os.path.basename(os.path.normpath(abs_path_to_source))))
 
-        print("transfer candidates:", transfer_candidates)
-        print()
-    
         return transfer_candidates
 
-    transfer_candidates = get_transfer_candidates(args)
-
     def sync(transfer_candidates):
-        '''
-        
-        Note: bash rsync allows mapping many files to one. It will create the file if it doesn't exist.
-        '''
+        """
+        Copies candidates to target folder if they do not exist or hashes are different.
+        Note: Like bash rsync, allows mapping many files to one - will create the file if it doesn't exist.
 
+        :param transfer_candidates: list of strings
+        :return: None
+        """
 
-        abs_path_to_dest = os.path.join(os.getcwd(), args[-1])
-        print("abs path to dest:", abs_path_to_dest)
+        abs_path_to_dest = os.path.join(os.getcwd(), arguments[-1])
         dest_is_dir = os.path.isdir(abs_path_to_dest)
-        print('dest is dir:', dest_is_dir)
-        dest_is_file = os.path.isfile(abs_path_to_dest)
-        print('dest is file:', dest_is_file)
 
         for candidate in transfer_candidates:
-            print('candidate:', candidate)
             if os.path.isfile(candidate):
                 candidate_basename = os.path.basename(candidate)
             else:
                 candidate_basename = os.path.basename(os.path.normpath(candidate))
-            print('candidate basename:', candidate_basename)
             candidate_dirname = os.path.dirname(abs_path_to_dest)
-            print("candidate dirname:", candidate_dirname)
-            path_to_candidate_in_dest = os.path.join(candidate_dirname, candidate_basename) 
-            print('candidate in dest:', path_to_candidate_in_dest)
-            # we know the candidate exists
-            # check if the candidate exists in the destination folder
-            # and the destination is a folder
+            path_to_candidate_in_dest = os.path.join(candidate_dirname, candidate_basename)
             if os.path.exists(path_to_candidate_in_dest) and dest_is_dir:
-                print("file/dir exists and dest is dir")
-                # hash compare files to see if transfer is needed
-                # if files are not the same
-                # if directory exists, that's sufficient, don't need to check 
                 if os.path.isfile(candidate):
                     hashes_match = filecmp.cmp(candidate, path_to_candidate_in_dest)
-                    print("dest is folder and hashes match:", hashes_match)            
-                    if hashes_match != True:
+                    if not hashes_match:
                         report.append(candidate_basename)
-                        if dry_run != True:
+                        if not dry_run:
                             shutil.copy(candidate, path_to_candidate_in_dest)
-                # elif os.path.isdir(candidate) and dirs:
-                #     # DO NEED THIS BECAUSE DIR EXISTS IN DEST
-                #     # HASH WILL SAY DIFF BUT CAN'T BE DIFF BC EMPTY (ONE LEVEL)
-                #     # NOTHING TO DO OR REPORT
-                #     # if the directory exists, we don't need to copy
-                #     # the directory can't have any contents
-                #     # just add to the report
-                #     report.append(os.path.basename(os.path.normpath(candidate)))
             elif os.path.isfile(candidate):
-                # this case is to cover when you specify the filename
-                # check if the filename that is specified exists in the destination
                 if os.path.exists(abs_path_to_dest):
-                    hashes_match = filecmp.cmp(candidate, abs_path_to_dest) 
-                    print("dest is file and hashes match:", hashes_match)
-                    if hashes_match != True:
+                    hashes_match = filecmp.cmp(candidate, abs_path_to_dest)
+                    if not hashes_match:
                         report.append(candidate_basename)
                         if not dry_run:
                             shutil.copy(candidate, path_to_candidate_in_dest)
@@ -187,37 +122,62 @@ def main(argv=None):
                     if not dry_run:
                         shutil.copy(candidate, abs_path_to_dest)
             else:
-                print("file/dir does not exist in destination")
                 if os.path.isfile(candidate):
                     report.append(candidate_basename)
                     if not dry_run:
                         shutil.copy(candidate, path_to_candidate_in_dest)
                 else:
-                    # check if trying to map directory to file
                     if os.path.splitext(abs_path_to_dest)[1]:
-                        print("Trying to map directory to file...stop that")
                         continue
-                    # is directory that doesn't exist in the dest folder
                     report.append(os.path.basename(os.path.normpath(candidate)))
                     if not dry_run:
                         shutil.copytree(candidate, path_to_candidate_in_dest)
 
-    sync(transfer_candidates)
-
     def print_report(report):
-        
+        """
+        Formats and prints files and directories that will be transferred (if not dry-run).
+
+        :param report: list of strings
+        :return: None
+        """
+
         [print(line) for line in report]
         print()
         print("sent ??? bytes  received ??? bytes  ??? bytes/sec")
         if dry_run:
-            print("total size is ???  speedup is ???" + " (DRY RUN)")
+            print("total size is ???  speedup is ??? (DRY RUN)")
         else:
             print("total size is ???  speedup is ???")
+
+    options, arguments = parse_input(argv)
+
+    dirs = False
+    dry_run = False
+    verbose = False
+
+    report = []
+
+    for opt, arg in options:
+        if opt == '-h' or opt == '--help':
+            print(HELP)
+            sys.exit()
+
+        if opt == '-d' or opt == '--dirs':
+            dirs = True
+
+        if opt == '-n' or opt == '--dry-run':
+            dry_run = True
+
+        if opt == '-v' or opt == '--verbose':
+            verbose = True
+
+    candidates = get_transfer_candidates(arguments)
+
+    sync(candidates)
 
     if dry_run or verbose:
         print_report(report)
 
 
 if __name__ == "__main__":
-    
     main()
