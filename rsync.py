@@ -14,7 +14,7 @@ Python rsync is a mininmal analog of rsync written in Python. Python rsync is a 
 It transfers files in a filetree that is one level deep. It will only transfer files if they have different 
 contents.
 
-Usage: rsync [OPTION]... SRC ... DEST
+Usage: rsync [OPTION]... [SRC] ... [DEST]
 
 Example:  
 - python rsync file dir/ will copy file into dir/
@@ -97,12 +97,13 @@ def main(argv=None):
         dest_is_dir = os.path.isdir(abs_path_to_dest)
 
         for candidate in transfer_candidates:
-            if os.path.isfile(candidate):
-                candidate_basename = os.path.basename(candidate)
+            candidate_basename = os.path.basename(candidate)
+            if dest_is_dir:
+                dest_dirname = abs_path_to_dest
             else:
-                candidate_basename = os.path.basename(os.path.normpath(candidate))
-            candidate_dirname = os.path.dirname(abs_path_to_dest)
-            path_to_candidate_in_dest = os.path.join(candidate_dirname, candidate_basename)
+                dest_dirname = os.path.dirname(abs_path_to_dest)
+            path_to_candidate_in_dest = os.path.join(dest_dirname, candidate_basename)
+            # check if candidate exists in dest folder
             if os.path.exists(path_to_candidate_in_dest) and dest_is_dir:
                 if os.path.isfile(candidate):
                     hashes_match = filecmp.cmp(candidate, path_to_candidate_in_dest)
@@ -148,6 +149,7 @@ def main(argv=None):
             print("total size is ???  speedup is ??? (DRY RUN)")
         else:
             print("total size is ???  speedup is ???")
+
 
     options, arguments = parse_input(argv)
 

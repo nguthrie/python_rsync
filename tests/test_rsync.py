@@ -28,6 +28,19 @@ class TestCaseBase(unittest.TestCase):
 
 class TestRsync(TestCaseBase):
 
+    @staticmethod
+    def remove_files_and_dirs(folder):
+        """Input dir (str) to remove all files and dir in that location."""
+        for filename in os.listdir(folder):
+            file_path = os.path.join(folder, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print('Failed to delete %s. Reason: %s' % (file_path, e))
+
     @classmethod
     def setUpClass(cls): 
         try:
@@ -48,50 +61,29 @@ class TestRsync(TestCaseBase):
 
     @classmethod
     def tearDownClass(cls):
+        """Delete all files from source after tests."""
         folder = 'test_source/'
-        for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
-
+        cls.remove_files_and_dirs(folder)        
+        
     def setUp(self):
         '''Delete all files from test_source/ before test.'''
         folder = 'test_dest/'
-        for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
+        self.remove_files_and_dirs(folder)
 
     def tearDown(self):
         '''Delete all files from test_source/ after test.'''
         folder = 'test_dest/'
-        for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
-
+        self.remove_files_and_dirs(folder)
 
     def test_single_file(self):
         # Testing single file transfer
+        print("this test")
         rsync.main(['test_source/file0.txt', 'test_dest/'])
         path = pl.Path("test_dest/file0.txt")
+        print("end of test")
+        print()
         self.assertIsFile(path)
-
+        
     def test_single_dir(self):
         # Testing single directory transfer with option
         rsync.main(['-d', 'test_source/testdir0/', 'test_dest/testdir0/'])
